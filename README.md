@@ -1,75 +1,30 @@
-# Python Distributed Hash Table
-[![Build Status](https://secure.travis-ci.org/bmuller/kademlia.png?branch=master)](https://travis-ci.org/bmuller/kademlia)
-[![Docs Status](https://readthedocs.org/projects/kademlia/badge/?version=latest)](http://kademlia.readthedocs.org)
-[![Coverage Status](https://coveralls.io/repos/github/bmuller/twistar/badge.svg?branch=master)](https://coveralls.io/github/bmuller/twistar?branch=master)
+# Keridemlia: Discovery Mechanism for KERI using Kademlia
 
-**Documentation can be found at [kademlia.readthedocs.org](http://kademlia.readthedocs.org/).**
+[KERI](https://github.com/decentralized-identity/keri) is an end-to-end identity system for the Interjnet that places the primary root-of-trust in self-certifying Autonomic Identifiers (AIDs). Running KERI in indirect mode requires users or controllers to know mappings of AIDs to witness IP addresses in order to communicate and verify identities. Keridemlia solves this problem by providing a discovery mechanism that maps AIDs to witness IDs and witness IDs to witness IPs. This is done using a Distributed Hash Table, Kademlia.
 
-This library is an asynchronous Python implementation of the [Kademlia distributed hash table](http://en.wikipedia.org/wiki/Kademlia).  It uses the [asyncio library](https://docs.python.org/3/library/asyncio.html) in Python 3 to provide asynchronous communication.  The nodes communicate using [RPC over UDP](https://github.com/bmuller/rpcudp) to communiate, meaning that it is capable of working behind a [NAT](http://en.wikipedia.org/wiki/Network_address_translation).
+## API
 
-This library aims to be as close to a reference implementation of the [Kademlia paper](http://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf) as possible.
-
-## Installation
-
-```
-pip install kademlia
+```buildoutcfg
+1. POST /id/<aid>/<witness_id>             (publish AID -> ID mapping)
+2. GET  /id<aid>                           (get witness ID from AID)
+3. POST /ip/<witness_id>/<witness_ip>      (publish ID -> IP mapping)
+4. GET  /ip/<witness_id>                   (get witness IP from witness IP)
 ```
 
-## Usage
-*This assumes you have a working familiarity with [asyncio](https://docs.python.org/3/library/asyncio.html).*
+## Running
 
-Assuming you want to connect to an existing network:
-
-```python
-import asyncio
-from kademlia.network import Server
-
-async def run():
-    # Create a node and start listening on port 5678
-    node = Server()
-    await node.listen(5678)
-
-    # Bootstrap the node by connecting to other known nodes, in this case
-    # replace 123.123.123.123 with the IP of another node and optionally
-    # give as many ip/port combos as you can for other nodes.
-    await node.bootstrap([("123.123.123.123", 5678)])
-
-    # set a value for the key "my-key" on the network
-    await node.set("my-key", "my awesome value")
-
-    # get the value associated with "my-key" from the network
-    result = await node.get("my-key")
-    print(result)
-
-asyncio.run(run())
+To bootstrap a new Kademlia cluster (rather than joining an existing one), first run:
+```
+python3 bootstrap.py
 ```
 
-## Initializing a Network
-If you're starting a new network from scratch, just omit the `node.bootstrap` call in the example above.  Then, bootstrap other nodes by connecting to the first node you started.
-
-See the examples folder for a first node example that other nodes can bootstrap connect to and some code that gets and sets a key/value.
-
-## Logging
-This library uses the standard [Python logging library](https://docs.python.org/3/library/logging.html).  To see debut output printed to STDOUT, for instance, use:
-
-```python
-import logging
-
-log = logging.getLogger('kademlia')
-log.setLevel(logging.DEBUG)
-log.addHandler(logging.StreamHandler())
+Then in another terminal, to get the actual API, run:
+```
+python3 primary.py
 ```
 
-## Running Tests
-To run tests:
+## TODO
 
-```
-pip install -r dev-requirements.txt
-pytest
-```
+Keridemlia is in initial stages of development. Verification is supposed to happen before data is published to the DHT, but this has not been figured out yet. Because of this, the id/ip APIs are disabled and the aid/id APIs work without verification.
 
-## Reporting Issues
-Please report all issues [on github](https://github.com/bmuller/kademlia/issues).
-
-## Fidelity to Original Paper
-The current implementation should be an accurate implementation of all aspects of the paper save one - in Section 2.3 there is the requirement that the original publisher of a key/value republish it every 24 hours.  This library does not do this (though you can easily do this manually).
+After verification is complete and all APIs are working, next steps might include local caching for further optimizations, as well as an signed IP address type to store for id/ip APIs.
